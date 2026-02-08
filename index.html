@@ -84,6 +84,7 @@
         }
 
         .cell .dot.on { opacity: 1; }
+        .cell .dot.stale { opacity: 1; background: #f44; }
 
         /* fullscreen overlay */
         #overlay {
@@ -225,6 +226,13 @@
         grid.appendChild(cell);
 
         let prevPixels = null;
+        let lastSuccess = Date.now();
+        let staleTimer = setInterval(() => {
+            if (Date.now() - lastSuccess > 5000) {
+                dot.classList.remove('on');
+                dot.classList.add('stale');
+            }
+        }, 1000);
 
         function refresh() {
             if (!appVisible || activeFullscreen === name) {
@@ -234,6 +242,9 @@
             const next = new Image();
             next.crossOrigin = 'anonymous';
             next.onload = () => {
+                lastSuccess = Date.now();
+                dot.classList.remove('stale');
+
                 // motion detection
                 try {
                     const currPixels = getPixels(next);
