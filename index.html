@@ -204,9 +204,14 @@
         }
         const totalPixels = DIFF_W * DIFF_H;
         if (count / totalPixels < MOTION_MIN_PCT / 100) return null;
+        // raw centroid as 0-100%
+        const rawX = (sumX / count / DIFF_W) * 100;
+        const rawY = (sumY / count / DIFF_H) * 100;
+        // amplify distance from center so edge motion actually pans to the edge
+        const amp = 2;
         return {
-            x: (sumX / count / DIFF_W) * 100,
-            y: (sumY / count / DIFF_H) * 100
+            x: Math.max(0, Math.min(100, 50 + (rawX - 50) * amp)),
+            y: Math.max(0, Math.min(100, 50 + (rawY - 50) * amp))
         };
     }
 
