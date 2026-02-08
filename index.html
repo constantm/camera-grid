@@ -282,6 +282,7 @@
         grid.appendChild(cell);
 
         let prevPixels = null;
+        let lastMotionCheck = 0;
         let lastSuccess = Date.now();
         let staleTimer = setInterval(() => {
             if (Date.now() - lastSuccess > 5000) {
@@ -302,18 +303,22 @@
                 dot.classList.remove('stale');
                 cell.classList.add('loaded');
 
-                // motion detection
-                try {
-                    const currPixels = getPixels(next);
-                    if (prevPixels) {
-                        const motion = detectMotion(prevPixels, currPixels);
-                        if (motion) {
-                            img.style.objectPosition = `${motion.x.toFixed(1)}% ${motion.y.toFixed(1)}%`;
+                // motion detection (every 5s)
+                const now = Date.now();
+                if (now - lastMotionCheck >= 5000) {
+                    lastMotionCheck = now;
+                    try {
+                        const currPixels = getPixels(next);
+                        if (prevPixels) {
+                            const motion = detectMotion(prevPixels, currPixels);
+                            if (motion) {
+                                img.style.objectPosition = `${motion.x.toFixed(1)}% ${motion.y.toFixed(1)}%`;
+                            }
                         }
+                        prevPixels = currPixels;
+                    } catch(e) {
+                        // canvas tainted or other error — ignore
                     }
-                    prevPixels = currPixels;
-                } catch(e) {
-                    // canvas tainted or other error — ignore
                 }
 
                 img.src = next.src;
