@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Cameras">
+    <meta name="theme-color" content="#000000">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+    <link rel="icon" type="image/svg+xml" href="/icon.svg">
+    <title>Cameras</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            height: 100%;
+            background: #000;
+            overflow: hidden;
+            touch-action: manipulation;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 2px;
+            height: 100%;
+            width: 100%;
+            padding: env(safe-area-inset-top, 2px) env(safe-area-inset-right, 2px) env(safe-area-inset-bottom, 2px) env(safe-area-inset-left, 2px);
+        }
+
+        @media (orientation: landscape) {
+            .grid {
+                grid-template-columns: repeat(3, 1fr);
+                grid-template-rows: repeat(2, 1fr);
+            }
+        }
+
+        .cell {
+            position: relative;
+            background: #111;
+            border-radius: 4px;
+            overflow: hidden;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .cell img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: object-position 0.8s ease-out;
+        }
+
+        .cell .label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 4px 8px;
+            background: linear-gradient(transparent, rgba(0,0,0,.7));
+            color: #fff;
+            font: 600 12px/1.4 -apple-system, sans-serif;
+            text-transform: capitalize;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .cell .dot {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4f4;
+            z-index: 2;
+            opacity: 0;
+            transition: opacity .3s;
+        }
+
+        .cell .dot.on { opacity: 1; }
+
+        /* fullscreen overlay */
+        #overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            background: #000;
+        }
+
+        #overlay.active { display: flex; flex-direction: column; }
+
+        #overlay .bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: env(safe-area-inset-top, 10px) 16px 10px 16px;
+            background: #111;
+            color: #fff;
+            font: 600 16px/1.4 -apple-system, sans-serif;
+            text-transform: capitalize;
+            z-index: 2;
+        }
+
+        #overlay .close {
+            font-size: 28px;
+            cursor: pointer;
+            padding: 0 8px;
+            color: #fff;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        #overlay video {
+            flex: 1;
+            width: 100%;
+            object-fit: contain;
+            background: #000;
+        }
+    </style>
+</head>
+<body>
+    <div class="grid" id="grid"></div>
+    <div id="overlay">
+        <div class="bar">
+            <span id="overlay-title"></span>
+            <span class="close" id="overlay-close">&times;</span>
+        </div>
+        <video id="overlay-video" autoplay playsinline muted></video>
+    </div>
+
+    <script>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js');
+    }
+
+    const API = '/api';
+    const CAMERAS = [
+        'driveway', 'backyard',
+        'eetkamer', 'moo_kantoor',
+        'anouk_kamer', 'heidi_kamer'
+    ];
+    const REFRESH_MS = 1000;
+    // downscale frames for diffing (saves CPU on phone)
+    const DIFF_W = 80;
+    const DIFF_H = 45;
+    // pixel difference threshold (0-255) to count as "changed"
+    const DIFF_THRESHOLD = 60;
+    // minimum % of pixels that must change to count as motion (filters noise/compression)
+    const MOTION_MIN_PCT = 3;
+
+    const grid = document.getElementById('grid');
+    const overlay = document.getElementById('overlay');
+    const overlayTitle = document.getElementById('overlay-title');
+    const overlayClose = document.getElementById('overlay-close');
+    const overlayVideo = document.getElementById('overlay-video');
+
+    let activeFullscreen = null;
+
+    let appVisible = true;
+    document.addEventListener('visibilitychange', () => {
+        appVisible = !document.hidden;
+    });
+
+    // shared offscreen canvas for motion detection
+    const diffCanvas = document.createElement('canvas');
+    diffCanvas.width = DIFF_W;
+    diffCanvas.height = DIFF_H;
+    const diffCtx = diffCanvas.getContext('2d', { willReadFrequently: true });
+
+    function getPixels(img) {
+        diffCtx.drawImage(img, 0, 0, DIFF_W, DIFF_H);
+        return diffCtx.getImageData(0, 0, DIFF_W, DIFF_H).data;
+    }
+
+    // returns {x, y} as percentages (0-100) of the motion centroid, or null
+    function detectMotion(prevPixels, currPixels) {
+        let sumX = 0, sumY = 0, count = 0;
+        for (let y = 0; y < DIFF_H; y++) {
+            for (let x = 0; x < DIFF_W; x++) {
+                const i = (y * DIFF_W + x) * 4;
+                const dr = Math.abs(currPixels[i] - prevPixels[i]);
+                const dg = Math.abs(currPixels[i+1] - prevPixels[i+1]);
+                const db = Math.abs(currPixels[i+2] - prevPixels[i+2]);
+                if (dr + dg + db > DIFF_THRESHOLD * 3) {
+                    sumX += x;
+                    sumY += y;
+                    count++;
+                }
+            }
+        }
+        const totalPixels = DIFF_W * DIFF_H;
+        if (count / totalPixels < MOTION_MIN_PCT / 100) return null;
+        return {
+            x: (sumX / count / DIFF_W) * 100,
+            y: (sumY / count / DIFF_H) * 100
+        };
+    }
+
+    CAMERAS.forEach(name => {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.dataset.camera = name;
+
+        const img = document.createElement('img');
+        img.alt = name;
+        img.crossOrigin = 'anonymous';
+        img.src = `${API}/frame.jpeg?src=${encodeURIComponent(name)}&t=${Date.now()}`;
+
+        const dot = document.createElement('div');
+        dot.className = 'dot';
+
+        const label = document.createElement('div');
+        label.className = 'label';
+        label.textContent = name.replace(/_/g, ' ');
+
+        cell.appendChild(img);
+        cell.appendChild(dot);
+        cell.appendChild(label);
+        grid.appendChild(cell);
+
+        let prevPixels = null;
+
+        function refresh() {
+            if (!appVisible || activeFullscreen === name) {
+                setTimeout(refresh, REFRESH_MS);
+                return;
+            }
+            const next = new Image();
+            next.crossOrigin = 'anonymous';
+            next.onload = () => {
+                // motion detection
+                try {
+                    const currPixels = getPixels(next);
+                    if (prevPixels) {
+                        const motion = detectMotion(prevPixels, currPixels);
+                        if (motion) {
+                            img.style.objectPosition = `${motion.x.toFixed(1)}% ${motion.y.toFixed(1)}%`;
+                        }
+                    }
+                    prevPixels = currPixels;
+                } catch(e) {
+                    // canvas tainted or other error — ignore
+                }
+
+                img.src = next.src;
+                dot.classList.add('on');
+                setTimeout(() => dot.classList.remove('on'), 300);
+                setTimeout(refresh, REFRESH_MS);
+            };
+            next.onerror = () => {
+                setTimeout(refresh, REFRESH_MS * 3);
+            };
+            next.src = `${API}/frame.jpeg?src=${encodeURIComponent(name)}&t=${Date.now()}`;
+        }
+        setTimeout(refresh, CAMERAS.indexOf(name) * 150);
+
+        cell.addEventListener('click', () => openFullscreen(name));
+    });
+
+    function openFullscreen(name) {
+        activeFullscreen = name;
+        overlayTitle.textContent = name.replace(/_/g, ' ');
+        overlayVideo.src = `${API}/stream.mp4?src=${encodeURIComponent(name)}`;
+        overlayVideo.play().catch(() => {
+            overlayVideo.muted = true;
+            overlayVideo.play().catch(() => {});
+        });
+        overlay.classList.add('active');
+        history.pushState({ camera: name }, '');
+    }
+
+    function closeFullscreen() {
+        if (!activeFullscreen) return;
+        activeFullscreen = null;
+        overlay.classList.remove('active');
+        overlayVideo.src = '';
+    }
+
+    window.addEventListener('popstate', () => {
+        closeFullscreen();
+    });
+
+    overlayClose.addEventListener('click', (e) => {
+        e.stopPropagation();
+        history.back();
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') history.back();
+    });
+    </script>
+</body>
+</html>
