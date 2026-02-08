@@ -191,7 +191,7 @@
     const REFRESH_MS = 1000;
     function frameWidth() {
         // portrait: 2 cols, landscape: 3 cols — aim for ~1.5x cell width for retina
-        return window.innerWidth > window.innerHeight ? 480 : 320;
+        return window.innerWidth > window.innerHeight ? 640 : 480;
     }
     // downscale frames for diffing (saves CPU on phone)
     const DIFF_W = 80;
