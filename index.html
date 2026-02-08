@@ -267,7 +267,7 @@
         const img = document.createElement('img');
         img.alt = name;
         img.crossOrigin = 'anonymous';
-        img.src = `${API}/frame.jpeg?src=${encodeURIComponent(name)}&width=${frameWidth()}&t=${Date.now()}`;
+        img.src = `${API}/frame.webp?src=${encodeURIComponent(name)}&width=${frameWidth()}&t=${Date.now()}`;
 
         const dot = document.createElement('div');
         dot.className = 'dot';
@@ -329,7 +329,7 @@
             next.onerror = () => {
                 setTimeout(refresh, REFRESH_MS * 3);
             };
-            next.src = `${API}/frame.jpeg?src=${encodeURIComponent(name)}&width=${frameWidth()}&t=${Date.now()}`;
+            next.src = `${API}/frame.webp?src=${encodeURIComponent(name)}&width=${frameWidth()}&t=${Date.now()}`;
         }
         setTimeout(refresh, CAMERAS.indexOf(name) * 150);
 
