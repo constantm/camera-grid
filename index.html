@@ -263,7 +263,7 @@
         const img = document.createElement('img');
         img.alt = name;
         img.crossOrigin = 'anonymous';
-        img.src = `${API}/frame.jpeg?src=${encodeURIComponent(name)}&t=${Date.now()}`;
+        img.src = `${API}/frame.jpeg?src=${encodeURIComponent(name)}&width=320&t=${Date.now()}`;
 
         const dot = document.createElement('div');
         dot.className = 'dot';
@@ -320,7 +320,7 @@
             next.onerror = () => {
                 setTimeout(refresh, REFRESH_MS * 3);
             };
-            next.src = `${API}/frame.jpeg?src=${encodeURIComponent(name)}&t=${Date.now()}`;
+            next.src = `${API}/frame.jpeg?src=${encodeURIComponent(name)}&width=320&t=${Date.now()}`;
         }
         setTimeout(refresh, CAMERAS.indexOf(name) * 150);
 
