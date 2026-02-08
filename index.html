@@ -53,6 +53,25 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        .cell::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 24px;
+            height: 24px;
+            margin: -12px 0 0 -12px;
+            border: 2px solid #333;
+            border-top-color: #888;
+            border-radius: 50%;
+            animation: spin .8s linear infinite;
+            z-index: 1;
+        }
+
+        .cell.loaded::before { display: none; }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
         .cell img {
             width: 100%;
             height: 100%;
@@ -122,6 +141,21 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        #overlay .spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 36px;
+            height: 36px;
+            margin: -18px 0 0 -18px;
+            border: 3px solid #333;
+            border-top-color: #888;
+            border-radius: 50%;
+            animation: spin .8s linear infinite;
+        }
+
+        #overlay .spinner.hidden { display: none; }
+
         #overlay video {
             flex: 1;
             min-height: 0;
@@ -139,6 +173,7 @@
             <span id="overlay-title"></span>
             <span class="close" id="overlay-close">&times;</span>
         </div>
+        <div id="overlay-spinner" class="spinner"></div>
         <video id="overlay-video" autoplay playsinline muted></video>
     </div>
 
@@ -167,6 +202,11 @@
     const overlayTitle = document.getElementById('overlay-title');
     const overlayClose = document.getElementById('overlay-close');
     const overlayVideo = document.getElementById('overlay-video');
+    const overlaySpinner = document.getElementById('overlay-spinner');
+
+    overlayVideo.addEventListener('playing', () => {
+        overlaySpinner.classList.add('hidden');
+    });
 
     let activeFullscreen = null;
 
@@ -256,6 +296,7 @@
             next.onload = () => {
                 lastSuccess = Date.now();
                 dot.classList.remove('stale');
+                cell.classList.add('loaded');
 
                 // motion detection
                 try {
@@ -289,6 +330,7 @@
     function openFullscreen(name) {
         activeFullscreen = name;
         overlayTitle.textContent = name.replace(/_/g, ' ');
+        overlaySpinner.classList.remove('hidden');
         overlayVideo.src = `${API}/stream.mp4?src=${encodeURIComponent(name)}`;
         overlayVideo.play().catch(() => {
             overlayVideo.muted = true;
