@@ -1,4 +1,4 @@
-const CACHE = 'cameras-v1';
+const CACHE = 'cameras-v2';
 const SHELL = ['/', '/manifest.json', '/icon.svg'];
 
 self.addEventListener('install', e => {
