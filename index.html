@@ -189,6 +189,10 @@
         'anouk_kamer', 'heidi_kamer'
     ];
     const REFRESH_MS = 1000;
+    function frameWidth() {
+        // portrait: 2 cols, landscape: 3 cols — aim for ~1.5x cell width for retina
+        return window.innerWidth > window.innerHeight ? 480 : 320;
+    }
     // downscale frames for diffing (saves CPU on phone)
     const DIFF_W = 80;
     const DIFF_H = 45;
@@ -263,7 +267,7 @@
         const img = document.createElement('img');
         img.alt = name;
         img.crossOrigin = 'anonymous';
-        img.src = `${API}/frame.jpeg?src=${encodeURIComponent(name)}&width=320&t=${Date.now()}`;
+        img.src = `${API}/frame.jpeg?src=${encodeURIComponent(name)}&width=${frameWidth()}&t=${Date.now()}`;
 
         const dot = document.createElement('div');
         dot.className = 'dot';
@@ -320,7 +324,7 @@
             next.onerror = () => {
                 setTimeout(refresh, REFRESH_MS * 3);
             };
-            next.src = `${API}/frame.jpeg?src=${encodeURIComponent(name)}&width=320&t=${Date.now()}`;
+            next.src = `${API}/frame.jpeg?src=${encodeURIComponent(name)}&width=${frameWidth()}&t=${Date.now()}`;
         }
         setTimeout(refresh, CAMERAS.indexOf(name) * 150);
 
