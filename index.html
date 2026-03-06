@@ -82,11 +82,15 @@
         @-webkit-keyframes spin { to { -webkit-transform: rotate(360deg); transform: rotate(360deg); } }
         @keyframes spin { to { -webkit-transform: rotate(360deg); transform: rotate(360deg); } }
 
-        .cell img {
+        .cell .feed {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
-            object-fit: cover;
-            display: block;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
         }
 
         .cell .label {
@@ -181,16 +185,16 @@
 
         #overlay .overlay-spinner.hidden { display: none; }
 
-        #overlay img {
+        #overlay .overlay-feed {
             position: absolute;
             top: 44px;
             left: 0;
             right: 0;
             bottom: 0;
-            width: 100%;
-            height: calc(100% - 44px);
-            object-fit: contain;
-            background: #000;
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-color: #000;
         }
     </style>
 </head>
@@ -202,7 +206,7 @@
             <span class="close" id="overlay-close">&times;</span>
         </div>
         <div id="overlay-spinner" class="overlay-spinner"></div>
-        <img id="overlay-img" src="" alt="">
+        <div id="overlay-img" class="overlay-feed"></div>
     </div>
 
     <script>
@@ -250,9 +254,9 @@
                 var spinner = document.createElement("div");
                 spinner.className = "cell-spinner";
 
-                var img = document.createElement("img");
-                img.alt = name;
-                img.src = buildUrl(name, frameWidth());
+                var feed = document.createElement("div");
+                feed.className = "feed";
+                feed.style.backgroundImage = "url(" + buildUrl(name, frameWidth()) + ")";
 
                 var dot = document.createElement("div");
                 dot.className = "dot";
@@ -262,7 +266,7 @@
                 label.textContent = name.replace(/_/g, " ");
 
                 cell.appendChild(spinner);
-                cell.appendChild(img);
+                cell.appendChild(feed);
                 cell.appendChild(dot);
                 cell.appendChild(label);
                 grid.appendChild(cell);
@@ -286,7 +290,7 @@
                         dot.className = "dot";
                         cell.className = "cell loaded";
 
-                        img.src = next.src;
+                        feed.style.backgroundImage = "url(" + next.src + ")";
                         dot.className = "dot on";
                         setTimeout(function() { dot.className = "dot"; }, 300);
                         setTimeout(refresh, REFRESH_MS);
@@ -309,7 +313,7 @@
             var next = new Image();
             next.onload = function() {
                 overlaySpinner.className = "overlay-spinner hidden";
-                overlayImg.src = next.src;
+                overlayImg.style.backgroundImage = "url(" + next.src + ")";
                 fullscreenRefreshTimer = setTimeout(refreshFullscreen, REFRESH_MS);
             };
             next.onerror = function() {
@@ -322,7 +326,7 @@
             activeFullscreen = name;
             overlayTitle.textContent = name.replace(/_/g, " ");
             overlaySpinner.className = "overlay-spinner";
-            overlayImg.src = "";
+            overlayImg.style.backgroundImage = "";
             overlay.className = "active";
             history.pushState({ camera: name }, "");
             refreshFullscreen();
@@ -332,7 +336,7 @@
             if (!activeFullscreen) return;
             activeFullscreen = null;
             overlay.className = "";
-            overlayImg.src = "";
+            overlayImg.style.backgroundImage = "";
             if (fullscreenRefreshTimer) {
                 clearTimeout(fullscreenRefreshTimer);
                 fullscreenRefreshTimer = null;
