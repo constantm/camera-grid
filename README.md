@@ -11,11 +11,20 @@ Frigate's own UI is unreliable on iOS Safari — streams frequently fail to conn
 - **Motion tracking**: Client-side frame differencing auto-centers the crop on detected motion
 - **PWA**: Add to Home Screen for standalone app experience with no browser chrome
 
+## Compatibility
+
+Designed to work on old iOS devices (iPad 3 / iOS 9.3.6 and up):
+- No CSS Grid — uses absolute positioning with `calc()` and `nth-child`
+- ES5 JavaScript only — no arrow functions, template literals, or const/let
+- No canvas/motion detection — simple center-cropped feeds
+- Fullscreen uses refreshing JPEG snapshot (no fMP4 video streaming)
+- Service Worker is feature-gated — works where supported, gracefully skipped elsewhere
+
 ## Architecture
 
 ```
 ┌──────────────┐      ┌──────────────┐      ┌──────────────┐
-│   iPhone     │      │  nginx:8080  │      │ go2rtc:1984  │
+│ iPhone/iPad  │      │  nginx:8080  │      │ go2rtc:1984  │
 │   Safari     │─────▶│  camera-grid │─────▶│  (in Frigate)│
 │              │      │  /api/* proxy│      │              │
 └──────────────┘      └──────────────┘      └──────────────┘
@@ -57,7 +66,7 @@ The container joins the `frigate_default` Docker network to reach go2rtc. If you
 
 | File | Purpose |
 |------|---------|
-| `index.html` | Single-page app with grid, fullscreen overlay, motion detection |
+| `index.html` | Single-page app with grid view and fullscreen snapshot overlay |
 | `nginx.conf` | Serves static files + proxies `/api/*` to go2rtc |
 | `docker-compose.yml` | nginx:alpine container config |
 | `manifest.json` | PWA manifest |
