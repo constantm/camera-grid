@@ -6,9 +6,8 @@ Frigate's own UI is unreliable on iOS Safari — streams frequently fail to conn
 
 ## How it works
 
-- **Grid view**: JPEG snapshots refreshing every second — plain `<img>` tags, works everywhere
-- **Fullscreen**: Tap a camera for live fMP4 stream via native `<video>` tag
-- **Motion tracking**: Client-side frame differencing auto-centers the crop on detected motion
+- **Grid view**: JPEG snapshots refreshing every second, works everywhere
+- **Fullscreen**: Tap a camera for a high-res refreshing snapshot
 - **PWA**: Add to Home Screen for standalone app experience with no browser chrome
 
 ## Compatibility
