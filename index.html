@@ -82,15 +82,15 @@
         @-webkit-keyframes spin { to { -webkit-transform: rotate(360deg); transform: rotate(360deg); } }
         @keyframes spin { to { -webkit-transform: rotate(360deg); transform: rotate(360deg); } }
 
-        .cell .feed {
+        .cell img {
             position: absolute;
-            top: 0;
+            top: 50%;
             left: 0;
             width: 100%;
-            height: 100%;
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
+            min-height: 100%;
+            display: block;
+            -webkit-transform: translateY(-50%);
+            transform: translateY(-50%);
         }
 
         .cell .label {
@@ -191,10 +191,19 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background-size: contain;
-            background-position: center;
-            background-repeat: no-repeat;
-            background-color: #000;
+            overflow: hidden;
+            background: #000;
+            text-align: center;
+        }
+
+        #overlay .overlay-feed img {
+            max-width: 100%;
+            max-height: 100%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            -webkit-transform: translate(-50%, -50%);
+            transform: translate(-50%, -50%);
         }
     </style>
 </head>
@@ -206,7 +215,7 @@
             <span class="close" id="overlay-close">&times;</span>
         </div>
         <div id="overlay-spinner" class="overlay-spinner"></div>
-        <div id="overlay-img" class="overlay-feed"></div>
+        <div class="overlay-feed"><img id="overlay-img" src="" alt=""></div>
     </div>
 
     <script>
@@ -254,9 +263,9 @@
                 var spinner = document.createElement("div");
                 spinner.className = "cell-spinner";
 
-                var feed = document.createElement("div");
-                feed.className = "feed";
-                feed.style.backgroundImage = "url(" + buildUrl(name, frameWidth()) + ")";
+                var img = document.createElement("img");
+                img.alt = name;
+                img.src = buildUrl(name, frameWidth());
 
                 var dot = document.createElement("div");
                 dot.className = "dot";
@@ -266,7 +275,7 @@
                 label.textContent = name.replace(/_/g, " ");
 
                 cell.appendChild(spinner);
-                cell.appendChild(feed);
+                cell.appendChild(img);
                 cell.appendChild(dot);
                 cell.appendChild(label);
                 grid.appendChild(cell);
@@ -290,7 +299,7 @@
                         dot.className = "dot";
                         cell.className = "cell loaded";
 
-                        feed.style.backgroundImage = "url(" + next.src + ")";
+                        img.src = next.src;
                         dot.className = "dot on";
                         setTimeout(function() { dot.className = "dot"; }, 300);
                         setTimeout(refresh, REFRESH_MS);
@@ -313,7 +322,7 @@
             var next = new Image();
             next.onload = function() {
                 overlaySpinner.className = "overlay-spinner hidden";
-                overlayImg.style.backgroundImage = "url(" + next.src + ")";
+                overlayImg.src = next.src;
                 fullscreenRefreshTimer = setTimeout(refreshFullscreen, REFRESH_MS);
             };
             next.onerror = function() {
@@ -326,7 +335,7 @@
             activeFullscreen = name;
             overlayTitle.textContent = name.replace(/_/g, " ");
             overlaySpinner.className = "overlay-spinner";
-            overlayImg.style.backgroundImage = "";
+            overlayImg.src = "";
             overlay.className = "active";
             history.pushState({ camera: name }, "");
             refreshFullscreen();
@@ -336,7 +345,7 @@
             if (!activeFullscreen) return;
             activeFullscreen = null;
             overlay.className = "";
-            overlayImg.style.backgroundImage = "";
+            overlayImg.src = "";
             if (fullscreenRefreshTimer) {
                 clearTimeout(fullscreenRefreshTimer);
                 fullscreenRefreshTimer = null;
